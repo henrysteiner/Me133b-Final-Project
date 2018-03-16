@@ -13,7 +13,7 @@ binArr = edge(I, 'log');
 % actual shapes.
 % Use a line structuring element that is length 5 and angle 45
 se = strel('line',5,45);
-% se = strel('square', 3);
+% se = strel('square', 5);
 binArr = imdilate(binArr, se);
 
 % Get rid of small blobs and smoothen out the borders
@@ -23,26 +23,29 @@ binArr = imclose(binArr, true(5));
 % Fill in the holes
 binArr = imfill(binArr, 'holes');
 
-tempArr = binArr;
+binArr2 = imresize(binArr, 0.5);
+tempArr2 = binArr2;
 
 % Set the border to be an obstacle
-binArr([1,end],:) = 1;
-binArr(:,[1,end]) = 1;
+binArr2([1,end],:) = 1;
+binArr2(:,[1,end]) = 1;
 
 % Display the filled in binary image
-% figure;
-% imshow(binArr)
-%  
+figure;
+imshow(binArr)
+ 
 %% Conduct Wavefront Potential/Brushfire Method
 
-% Convert our binary image to a double array 
-imArr = double(binArr);
+%Convert our binary image to a double array 
+imArr = double(binArr2);
 
 % We let 1 denote an obstacle
 cur = 1;
-temp = length(find(ismember(imArr,0)));
+temp= length(find(ismember(imArr,0)));
+newTemp = 0;
 
-while(temp ~= 0)
+while(temp ~= 0 && newTemp ~= temp)
+    newTemp = temp;
     [r,c] = find(ismember(imArr, cur));
     
     for i=1:length(r)
@@ -53,112 +56,120 @@ while(temp ~= 0)
     temp = length(find(ismember(imArr,0)))
 end
 
-
-for i=1:size(imArr,1)
-    for j=1:size(imArr,2)
-        if imArr(i,j) == 0
-            [minVal, sumVal] = getAdjVals(imArr, i, j);
-            imArr(i,j) = minVal + 1;
-        end
-    end
-end
-
 adjSum = zeros(size(imArr));
 for i=1:size(adjSum,1)
     for j=1:size(adjSum,2)
-        [minVal, sumVal] = getAdjVals(imArr, i, j);
+        [~, sumVal] = getAdjVals(imArr, i, j);
         adjSum(i,j) = sumVal;
     end
 end
 
-% %% Conduct Voronoi on the Image
-% 
-% % We conduct our search starting from each of the 4 corners
-% 
-% % First we just run it starting from the corner
-% % Will contain a 1 if the cell has been visited and a 0 if not
-% visited = zeros(size(imArr));
-% 
-% x = [];
-% y = [];
-% 
-% rC = 1;
-% cC = 1;
-% iter = 1;
-% 
-% xStack = [];
-% yStack = [];
-% 
-% while iter < 100
-%     
-%     visited(rC, cC) = 1;
-%     
-%     x = [x;rC];
-%     y = [y;cC];
-%     
-%     % Check if we have arrived back at an edge
-%     if(iter ~= 1 && imArr(rC, cC) == 1)
-%         disp('back at the edge');
-%         break
-%     end
-%     
-%     % Gets the largest unvisited value/possible moves
-%     [max, xCoords, yCoords] = getAdjRel(imArr, rC, cC, visited, 1);
-%     % Case where there is an unvisited larger adjacent
-%     if max >= imArr(rC, cC)
-%         
-%         if length(xCoords) > 1
-%             break
-%         end
-%         for i=1:length(xCoords)
-%             xStack = [xStack; xCoords(i)];
-%             yStack = [yStack; yCoords(i)];
-%         end
-%         
-%     % Case where the max is lower.
-%     else
-%         % In this case, we'd want to find the adjacent that has the
-%         % smallest sum
-%         [min, xCoords, yCoords] = getAdjRel(adjSum, rC, cC, visited, 0);
-%         if min <= adjSum(rC, cC)
-%             disp('sum')
-%             length(xCoords)
-%             for i=1:length(xCoords)
-%                 xStack = [xStack; xCoords(i)];
-%                 yStack = [yStack; yCoords(i)];
-%             end
-%         end
-%         
-%     end
-%     
-%     iter = iter + 1;
-%     
-%     if(isempty(xStack))
-%         disp('stack is empty');
-%         break
-%     end
-%     
-%     % Pop from the stack
-%     rC = xStack(end);
-%     cC = yStack(end);
-%     
-%     xStack = xStack(1:end-1);
-%     yStack = yStack(1:end-1);
-% 
-%         
-% end
-% 
-% [r,c] = find(tempArr);
-% plot(r,c);
-% hold on
-% scatter(x,y,'red');
+%% Voronoi Attempt 1: Traverse through all Possible Paths using Stack
+
+visited = zeros(size(imArr));
+points = [];
+stack = [1,1];
+
+while(~isempty(stack))
+    
+    % Pop off the stack
+    cur = stack(end,:)
+    stack = stack(1:end-1, :);
+    
+    % Add it to the path of points we have visited
+    points = [points; cur];
+    
+    % Base case, In this case do nothing and let this iteration complete
+    if((imArr(cur(1), cur(2)) == 1 && (cur(1)~=1||cur(2)~=1)))
+        disp('base case')
+        visited(cur(1), cur(2)) = 1;
+    % If not the base case, see what other points we should explore.
+    else
+        % Get the max value surrounding as well as the cells that
+        % contain that value
+        [max, xMax, yMax] = getAdjRel(imArr, cur, visited, 1);
+        xList = [];
+        yList = [];
+        
+        % If that maximum value is larger or equal than the current cell value
+        if max >= imArr(cur(1), cur(2))
+            if length(xMax) > 1
+                
+                [~, adjX, adjY] = getAdjRel(adjSum, cur, visited, 1);
+
+                for i=1:length(adjX)
+                    for j=1:length(xMax)
+                        if adjX(i) == xMax(j) && adjY(i) == yMax(j)
+                            xList = [xList;xMax(j)];
+                            yList = [yList;yMax(j)];
+                        end
+                    end
+                end
+            else
+                xList = xMax;
+                yList = yMax;
+            end
+        end
+
+        % If the max value is not larger, it means we need to trace a line
+        % back to the edge. We do this by looking at the unvisited adjacent cell that
+        % has the minimum adjacent cell sum.
+        if isempty(xList)
+            [~, xMin, yMin] = getAdjRel(adjSum, cur, visited, 0);
+            xList = xMin;
+            yList = yMin;
+        end
+
+        % Since we have chosen not to visit the rest of them, we can mark
+        % the remaining cells as visited. 
+        % visited = markAdditional(xList,yList,visited, cur(1), cur(2));
+        
+        % If only one possible cell to go to based on x/y list
+        if length(xList) == 1
+            newPoint = [xList(1),yList(1)];
+            stack = [stack;newPoint];
+        % If a split is necessary
+        elseif length(xList) > 1
+            % For every new point to go to we add it to the stack
+            for i=1:length(xList)
+                disp("needs to split");
+                newPoint = [xList(i), yList(i)];
+                % The function is called on the next coordinates to go
+                % to.
+                stack = [stack; newPoint];
+            end
+        else
+            disp('no possible found')
+        end
+    end 
+    
+    % Since we have found all the values to explore, we can mark this as
+    % visited.
+    visited(cur(1), cur(2)) = 1;
+    
+end
+
+%% Voronoi Attempt2: Find Midpoints between Obstacles and Draw Path
+
+points = []
+for i=1:size(imArr,1)
+    for j=1:size(imArr,2)
+        cur = [i,j];
+        if checkCell(imArr, cur)
+            cur
+            points = [points; cur];
+        end
+    end
+end
+
+%% Draw Voronoi Diagram
+
+imshow(imresize(I,0.5));
+hold on
+scatter(points(:,2),points(:,1), 1, 'red', 'filled');
 
 %% Voronoi Built In Attempt
 
 % Attempt using built in voronoi function
-% [r, c] = find(tempArr);
-% voronoi(r,c)
-
-function arr = replaceBlanks(arr, i, j, target)
-    
-end
+[r, c] = find(tempArr2);
+voronoi(r,c)

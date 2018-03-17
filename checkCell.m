@@ -1,5 +1,9 @@
 function [ truth ] = checkCell(arr, cur)
-
+    % This function computes whether the number of lower valued adjacents
+    % is larger than the number of higher valued adjacents. 
+    % This being true indicates that it is a 'midpoint' between obstacles
+    % and should be part of the voronoi path.
+    
     i = cur(1);
     j = cur(2);
     

@@ -1,7 +1,7 @@
 %% Initial Image Processing
 
 % Read in the image
-I = imread('img/squares.jpg');
+I = imread('img/square.jpg');
 a = max(size(I)); 
 scale = 400/a;
 
@@ -22,7 +22,7 @@ se = strel('line',5,45);
 binArr = imdilate(binArr, se);
 
 % Get rid of small blobs and smoothen out the borders
-binArr = bwareaopen(binArr, 2500);
+binArr = bwareaopen(binArr, 500);
 binArr = imclose(binArr, true(5));
 
 % Fill in the holes

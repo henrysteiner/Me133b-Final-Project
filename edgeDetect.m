@@ -1,11 +1,12 @@
 %% Initial Image Processing
 
 % Read in the image
-I = imread('square.jpg');
+I = imread('img/square.jpg');
 scale = 1;
 
 % Convert to grayscale
 I = rgb2gray(I);
+reI = imresize(I, scale);
 
 % Conduct matlab edge detection using the 'log' method with
 %   automatic thresholding values.
@@ -21,8 +22,8 @@ se = strel('line',5,45);
 binArr = imdilate(binArr, se);
 
 % Get rid of small blobs and smoothen out the borders
-binArr = bwareaopen(binArr, 2500);
-binArr = imclose(binArr, true(50));
+binArr = bwareaopen(binArr, 500);
+binArr = imclose(binArr, true(5));
 
 % Fill in the holes
 binArr = imfill(binArr, 'holes');
@@ -68,93 +69,10 @@ for i=1:size(adjSum,1)
     end
 end
 
-% %% Voronoi Attempt 1: Traverse through all Possible Paths using Stack
-% 
-% visited = zeros(size(imArr));
-% points = [];
-% stack = [1,1];
-% 
-% while(~isempty(stack))
-%     
-%     % Pop off the stack
-%     cur = stack(end,:)
-%     stack = stack(1:end-1, :);
-%     
-%     % Add it to the path of points we have visited
-%     points = [points; cur];
-%     
-%     % Base case, In this case do nothing and let this iteration complete
-%     if((imArr(cur(1), cur(2)) == 1 && (cur(1)~=1||cur(2)~=1)))
-%         disp('base case')
-%         visited(cur(1), cur(2)) = 1;
-%     % If not the base case, see what other points we should explore.
-%     else
-%         % Get the max value surrounding as well as the cells that
-%         % contain that value
-%         [max, xMax, yMax] = getAdjRel(imArr, cur, visited, 1);
-%         xList = [];
-%         yList = [];
-%         
-%         % If that maximum value is larger or equal than the current cell value
-%         if max >= imArr(cur(1), cur(2))
-%             if length(xMax) > 1
-%                 
-%                 [~, adjX, adjY] = getAdjRel(adjSum, cur, visited, 1);
-% 
-%                 for i=1:length(adjX)
-%                     for j=1:length(xMax)
-%                         if adjX(i) == xMax(j) && adjY(i) == yMax(j)
-%                             xList = [xList;xMax(j)];
-%                             yList = [yList;yMax(j)];
-%                         end
-%                     end
-%                 end
-%             else
-%                 xList = xMax;
-%                 yList = yMax;
-%             end
-%         end
-% 
-%         % If the max value is not larger, it means we need to trace a line
-%         % back to the edge. We do this by looking at the unvisited adjacent cell that
-%         % has the minimum adjacent cell sum.
-%         if isempty(xList)
-%             [~, xMin, yMin] = getAdjRel(adjSum, cur, visited, 0);
-%             xList = xMin;
-%             yList = yMin;
-%         end
-% 
-%         % Since we have chosen not to visit the rest of them, we can mark
-%         % the remaining cells as visited. 
-%         % visited = markAdditional(xList,yList,visited, cur(1), cur(2));
-%         
-%         % If only one possible cell to go to based on x/y list
-%         if length(xList) == 1
-%             newPoint = [xList(1),yList(1)];
-%             stack = [stack;newPoint];
-%         % If a split is necessary
-%         elseif length(xList) > 1
-%             % For every new point to go to we add it to the stack
-%             for i=1:length(xList)
-%                 disp("needs to split");
-%                 newPoint = [xList(i), yList(i)];
-%                 % The function is called on the next coordinates to go
-%                 % to.
-%                 stack = [stack; newPoint];
-%             end
-%         else
-%             disp('no possible found')
-%         end
-%     end 
-%     
-%     % Since we have found all the values to explore, we can mark this as
-%     % visited.
-%     visited(cur(1), cur(2)) = 1;
-%     
-% end
 
 %% Voronoi Attempt2: Find Midpoints between Obstacles and Draw Path
 
+voronoi = zeros(size(imArr));
 v_points = [];
 for i=1:size(imArr,1)
     for j=1:size(imArr,2)
@@ -162,24 +80,17 @@ for i=1:size(imArr,1)
         if checkCell(imArr, cur)
             cur
             v_points = [v_points; cur];
+            voronoi(cur(1), cur(2)) = 1;
         end
     end
 end
 
 %% Draw Voronoi Diagram
 
-imshow(imresize(I,1));
+imshow(reI);
 hold on
 scatter(v_points(:,2),v_points(:,1), 5, 'red','square', 'filled');
 hold on
-
-% %% Voronoi Built In Attempt
-% 
-% % Attempt using built in voronoi function
-% [r, c] = find(tempArr2);
-% voronoi(r,c)
-
-%% Choose start and end
 
 % Use data cursor to select robot point and export point as "robot" and "goal" to workspace
 disp('Choose [robot] starting location')
@@ -196,11 +107,13 @@ hold on
 scatter(xg,yg,200,'g','filled')
 hold on
 
-[closestx,closesty] = findClosest(xr,yr,v_points);
-plot([xr closestx],[yr closesty],'LineWidth',1)
+[closestRX,closestRY] = findClosest(xr,yr,v_points);
+plot([xr closestRX],[yr closestRY],'LineWidth',1)
 hold on
-[closestx,closesty] = findClosest(xg,yg,v_points);
-plot([xg,closestx],[yg,closesty],'LineWidth',1)
+[closestGX,closestGY] = findClosest(xg,yg,v_points);
+plot([xg,closestGX],[yg,closestGY],'LineWidth',1)
+
+hold off
 
 
 

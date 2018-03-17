@@ -2,12 +2,11 @@ function [ truth ] = checkCell(arr, cur)
 
     i = cur(1);
     j = cur(2);
+    
     valHigher = 0; 
     valLower = 0;
-    
-    rCoords = [];
-    cCoords = [];
-    
+    valEqual = 0;
+   
     for r = i-1:i+1
         for c = j-1:j+1
             % Check that x is less than the number of rows and nonneg
@@ -16,10 +15,12 @@ function [ truth ] = checkCell(arr, cur)
                 if c <= size(arr,2) && c > 0
                     % Check that we are not looking at the current cell
                     if r ~= i || c ~= j
-                        if arr(r,c) >= arr(i,j)
+                        if arr(r,c) > arr(i,j)
                             valHigher = valHigher + 1;
-                        else
+                        elseif arr(r,c) < arr(i,j)
                             valLower = valLower + 1;
+                        else
+                            valEqual = valEqual + 1;
                         end
                     end
                 end
@@ -27,6 +28,6 @@ function [ truth ] = checkCell(arr, cur)
         end
     end
     
-    truth = valLower > valHigher;
+    truth = (valLower > valHigher);
 end
 

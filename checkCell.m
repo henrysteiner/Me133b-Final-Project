@@ -5,7 +5,6 @@ function [ truth ] = checkCell(arr, cur)
     
     valHigher = 0; 
     valLower = 0;
-    valEqual = 0;
    
     for r = i-1:i+1
         for c = j-1:j+1
@@ -19,8 +18,6 @@ function [ truth ] = checkCell(arr, cur)
                             valHigher = valHigher + 1;
                         elseif arr(r,c) < arr(i,j)
                             valLower = valLower + 1;
-                        else
-                            valEqual = valEqual + 1;
                         end
                     end
                 end

@@ -1,8 +1,9 @@
 %% Initial Image Processing
 
 % Read in the image
-I = imread('img/square.jpg');
-scale = 1;
+I = imread('img/squares.jpg');
+a = max(size(I)); 
+scale = 400/a;
 
 % Convert to grayscale
 I = rgb2gray(I);
@@ -11,8 +12,7 @@ reI = imresize(I, scale);
 % Conduct matlab edge detection using the 'log' method with
 %   automatic thresholding values.
 binArr = edge(I, 'log');
-imshow(binArr);
-
+% imshow(binArr);
 
 % Dilate the image in order to connect the detecting edges to try and get
 % actual shapes.
@@ -22,7 +22,7 @@ se = strel('line',5,45);
 binArr = imdilate(binArr, se);
 
 % Get rid of small blobs and smoothen out the borders
-binArr = bwareaopen(binArr, 500);
+binArr = bwareaopen(binArr, 2500);
 binArr = imclose(binArr, true(5));
 
 % Fill in the holes
@@ -85,6 +85,18 @@ for i=1:size(imArr,1)
     end
 end
 
+%% Make Adjacency Matrix and Graph out of Voronoi Points
+
+adjMat = zeros(length(v_points));
+for i=1:length(v_points)
+    for j=1:length(v_points)
+        adjMat(i,j) = isAdjacent(v_points(i,:), v_points(j,:));
+    end
+end
+
+G = graph(adjMat);
+plot(G)
+
 %% Draw Voronoi Diagram
 
 imshow(reI);
@@ -108,10 +120,22 @@ scatter(xg,yg,200,'g','filled')
 hold on
 
 [closestRX,closestRY] = findClosest(xr,yr,v_points);
-plot([xr closestRX],[yr closestRY],'LineWidth',1)
+plot([xr closestRX], [yr closestRY], 'blue', 'LineWidth',2)
 hold on
 [closestGX,closestGY] = findClosest(xg,yg,v_points);
-plot([xg,closestGX],[yg,closestGY],'LineWidth',1)
+plot([xg,closestGX], [yg,closestGY], 'blue', 'LineWidth',2)
+
+[indexR, indexG] = findIndex(v_points, [closestRY, closestRX], [closestGY, closestGX]);
+
+P = shortestpath(G, indexR, indexG);
+path = zeros(length(P), 2);
+
+for i=1:length(P)
+    point = v_points(P(i), :);
+    path(i,:) = point;
+end
+
+plot(path(:,2), path(:,1), 'blue', 'LineWidth',2);
 
 hold off
 

@@ -65,7 +65,19 @@ while(temp ~= 0 && newTemp ~= temp)
     temp = length(find(ismember(imArr,0)))
 end
 
-%% Section 3: Find Midpoints between Obstacles
+%% Section 3: Failed Attempt: Utilizing a Stack to find all Paths
+
+adjSum = zeros(size(imArr));
+for i=1:size(adjSum,1)
+    for j=1:size(adjSum,2)
+        sumVal = getAdjVals(imArr, i, j);
+        adjSum(i,j) = sumVal;
+    end
+end
+
+v_points = voronoiAttempt(imArr, adjSum);
+
+%% Section 4: Successful Attempt: Find Midpoints between Obstacles
 
 v_points = [];
 
@@ -82,7 +94,7 @@ for i=1:size(imArr,1)
     end
 end
 
-%% Section 4: Make Adjacency Matrix and Graph out of Voronoi Points
+%% Section 5: Make Adjacency Matrix and Graph out of Voronoi Points
 
 adjMat = zeros(length(v_points));
 disp("Starting to create adjacency matrix");
@@ -99,7 +111,7 @@ disp("Completed adjacency matrix");
 G = graph(adjMat);
 % plot(G);
 
-%% Section 5: Draw Voronoi Diagram
+%% Section 6: Draw Voronoi Diagram
 
 % First, display the black and white image with the path overlayed on it.
 figure;

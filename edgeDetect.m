@@ -1,17 +1,15 @@
-%% Initial Image Processing
+%% Section 1: Initial Image Processing
 
 % Read in the image
-I = imread('img/square.jpg');
-a = max(size(I)); 
+I = imread('img/squares.jpg');
 scale = 400/max(size(I));
 
 % Convert to grayscale
 I = rgb2gray(I);
-reI = imresize(I, scale);
 
 % Conduct matlab edge detection using the 'log' method with
 %   automatic thresholding values.
-binArr = edge(reI, 'log');
+binArr = edge(I, 'log');
 % imshow(binArr);
 
 % Dilate the image in order to connect the detecting edges to try and get
@@ -39,7 +37,7 @@ binArr2(:,[1,end]) = 1;
 figure;
 imshow(binArr)
  
-%% Conduct Wavefront Potential/Brushfire Method
+%% Section 2: Conduct Wavefront Potential/Brushfire Method
 
 %Convert our binary image to a double array 
 imArr = double(binArr2);
@@ -67,9 +65,8 @@ while(temp ~= 0 && newTemp ~= temp)
     temp = length(find(ismember(imArr,0)))
 end
 
-%% Voronoi Attempt2: Find Midpoints between Obstacles and Draw Path
+%% Section 3: Find Midpoints between Obstacles
 
-voronoi = zeros(size(imArr));
 v_points = [];
 
 % Loop through all points and run the check cell function on each pair
@@ -81,14 +78,14 @@ for i=1:size(imArr,1)
         if checkCell(imArr, cur)
             cur
             v_points = [v_points; cur];
-            voronoi(cur(1), cur(2)) = 1;
         end
     end
 end
 
-%% Make Adjacency Matrix and Graph out of Voronoi Points
+%% Section 4: Make Adjacency Matrix and Graph out of Voronoi Points
 
 adjMat = zeros(length(v_points));
+disp("Starting to create adjacency matrix");
 % Loop through all the voronoi points. If two points are adjacent to each
 % other in the image array, it means there should be an edge between them.
 for i=1:length(v_points)
@@ -97,15 +94,16 @@ for i=1:length(v_points)
     end
 end
 
+disp("Completed adjacency matrix");
 % Creates a graph out of this adjacency matrix.
 G = graph(adjMat);
 % plot(G);
 
-%% Draw Voronoi Diagram
+%% Section 5: Draw Voronoi Diagram
 
 % First, display the black and white image with the path overlayed on it.
 figure;
-imshow(reI);
+imshow(imresize(I, scale));
 hold on
 scatter(v_points(:,2),v_points(:,1), 5, 'red','square', 'filled');
 hold on
@@ -121,14 +119,16 @@ xg = goal.Position(1);
 yg = goal.Position(2);   
 
 % Ensure that the robot and goal positions are valid. 
-if (imArr(xr, yr) == 1 || imArr(xg, yg) == 1)
-    disp ('Error: Robot and Goal should not be within an obstacle');
+if (imArr(xr,yr) == 1) && (imArr(xg,yg) == 1)
+    
+    disp('ERROR: Robot and Goal must not be within an obstacle');
     xr = robot.Position(1);
     yr = robot.Position(2);
     
-    xg = robot.Position(1);
-    yg = robot.Position(2);
+    xg = goal.Position(1);
+    yg = goal.Position(2);
 else
+    
     % If valid, plot the robot and goal point.
     scatter(xr,yr,200,'y','filled')
     hold on
@@ -145,12 +145,12 @@ else
     % Find the index of the robot closest and goal closest since that
     % represents the node number.
     [indexR, indexG] = findIndex(v_points, [closestRY, closestRX], [closestGY, closestGX]);
-    
+
     % Get the path of nodes that represents the shortest path from the
     % robot to the goal.
     P = shortestpath(G, indexR, indexG);
     path = zeros(length(P), 2);
-    
+
     % Follow the shortest path and add each point to the path list. 
     for i=1:length(P)
         point = v_points(P(i), :);
@@ -158,6 +158,7 @@ else
     end
 
     plot(path(:,2), path(:,1), 'blue', 'LineWidth',2);
+    
 end
 
 hold off

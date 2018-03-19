@@ -1,7 +1,8 @@
 %% Section 1: Initial Image Processing
 
 % Read in the image
-I = imread('img/squares.jpg');
+filename = 'img/squares.jpg';
+I = imread(filename);
 scale = 400/max(size(I));
 
 % Convert to grayscale
